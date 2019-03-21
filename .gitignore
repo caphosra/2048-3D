@@ -4,6 +4,10 @@ Assets/Scenes/Work.asset
 Workspace/
 .vscode/
 
+# Imported Assets
+
+Assets/Photon/
+
 ########################################
 
 # original [https://github.com/github/gitignore/blob/master/Unity.gitignore]
