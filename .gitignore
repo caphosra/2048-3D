@@ -1,3 +1,7 @@
+# Build result
+
+Assets/StreamingAssets/
+
 # Working space
 
 Assets/Scenes/Work.asset
@@ -7,6 +11,7 @@ Workspace/
 # Imported Assets
 
 Assets/Photon/
+Assets/Unity-Logs-Viewer/
 
 ########################################
 
@@ -21,6 +26,13 @@ Assets/Photon/
 
 # Never ignore Asset meta data
 ![Aa]ssets/**/*.meta
+
+###### capra314cabra Edit ######
+
+# Without StreamingAssets
+Assets/StreamingAssets.meta
+
+################################
 
 # Uncomment this line if you wish to ignore the asset store tools plugin
 # [Aa]ssets/AssetStoreTools*

@@ -6,9 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Game.unity
-    guid: 95fdc4ba8f9e37e48af8002cae93534b
-  - enabled: 1
     path: Assets/Scenes/OnlineMatching.unity
     guid: 9ea0e11ff7d3f3248a3e281300df7a21
+  - enabled: 1
+    path: Assets/Scenes/Game.unity
+    guid: 95fdc4ba8f9e37e48af8002cae93534b
   m_configObjects: {}
