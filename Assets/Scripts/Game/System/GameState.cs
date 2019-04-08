@@ -27,4 +27,30 @@ namespace Com.Capra314Cabra.Project_2048Ex
         ONLINE_CLIENT,
         ONLINE_WATCHER
     }
+
+    public static class PlayerStatusEx
+    {
+        public static bool IsMaster(this PlayerStatus status)
+        {
+            switch(status)
+            {
+                case PlayerStatus.OFFLINE:
+                case PlayerStatus.ONLINE_SERVER:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsWatcher(this PlayerStatus status)
+        {
+            switch (status)
+            {
+                case PlayerStatus.ONLINE_WATCHER:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
 }
