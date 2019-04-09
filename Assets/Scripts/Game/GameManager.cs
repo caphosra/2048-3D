@@ -16,6 +16,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
         #region MonoBehaviour Instance (Edit on Inspector)
 
         [SerializeField]
+        private Camera mainCamera;
+
+        [SerializeField]
         private GUIBoardManager boardGraphicManager;
         [SerializeField]
         private GameObject countDownGUI;
@@ -24,9 +27,18 @@ namespace Com.Capra314Cabra.Project_2048Ex
         [SerializeField]
         private PhotonView photonRPCSender;
 
-        #endregion
+        #region Watcher Only
 
-        #region MonoBehaviour Instance (Load by this code)
+        [SerializeField]
+        private GameObject subBoardObject;
+        [SerializeField]
+        private GUIBoardManager subBoardGraphicManager;
+        [SerializeField]
+        private Vector3 subCameraPosition;
+
+        private BlockBoard subBoard = new BlockBoard();
+
+        #endregion
 
         #endregion
 
@@ -51,6 +63,12 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
                 photonManager = GameObject.Find("PhotonManager").GetComponent<PhotonManager>();
                 gameSyncer = photonManager;
+
+                if (gameSyncer.PlayerStatus.IsWatcher())
+                {
+                    subBoardObject.SetActive(true);
+                    mainCamera.transform.position = subCameraPosition;
+                }
 
                 //
                 // Debug code
@@ -89,10 +107,13 @@ namespace Com.Capra314Cabra.Project_2048Ex
             {
                 case GameState.GAME_NOW:
                     {
-                        if (Input.GetKeyDown(KeyCode.W)) InvokeBlockMoved(MoveDirection.UP);
-                        else if (Input.GetKeyDown(KeyCode.S)) InvokeBlockMoved(MoveDirection.DOWN);
-                        else if (Input.GetKeyDown(KeyCode.A)) InvokeBlockMoved(MoveDirection.LEFT);
-                        else if (Input.GetKeyDown(KeyCode.D)) InvokeBlockMoved(MoveDirection.RIGHT);
+                        if (!gameSyncer.PlayerStatus.IsWatcher())
+                        {
+                            if (Input.GetKeyDown(KeyCode.W)) InvokeBlockMoved(MoveDirection.UP);
+                            else if (Input.GetKeyDown(KeyCode.S)) InvokeBlockMoved(MoveDirection.DOWN);
+                            else if (Input.GetKeyDown(KeyCode.A)) InvokeBlockMoved(MoveDirection.LEFT);
+                            else if (Input.GetKeyDown(KeyCode.D)) InvokeBlockMoved(MoveDirection.RIGHT);
+                        }
                     }
                     break;
             }
@@ -111,7 +132,16 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     {
                         if(gameSyncer.PlayerStatus.IsWatcher())
                         {
-                            // TO DO
+                            if(action.IsMaster)
+                            {
+                                board.Move((MoveDirection)action.Parameter, out _);
+                                boardGraphicManager.ChangeGraphicAll(board);
+                            }
+                            else
+                            {
+                                subBoard.Move((MoveDirection)action.Parameter, out _);
+                                subBoardGraphicManager.ChangeGraphicAll(subBoard);
+                            }
                         }
                         else
                         {
@@ -127,7 +157,22 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     {
                         if (gameSyncer.PlayerStatus.IsWatcher())
                         {
-                            // TO DO
+                            if (action.IsMaster)
+                            {
+                                int x = action.Parameter / 16;
+                                int y = action.Parameter % 16;
+                                board.SetValue(x, y, 2);
+                                boardGraphicManager.ChangeGraphicAll(board);
+                                boardGraphicManager.ShowBornParticleAt(x, y);
+                            }
+                            else
+                            {
+                                int x = action.Parameter / 16;
+                                int y = action.Parameter % 16;
+                                subBoard.SetValue(x, y, 2);
+                                subBoardGraphicManager.ChangeGraphicAll(subBoard);
+                                subBoardGraphicManager.ShowBornParticleAt(x, y);
+                            }
                         }
                         else
                         {
@@ -171,13 +216,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #region Support Funcitons
 
-        private void RandomSpawn()
-        {
-            var pos = board.RandomSpawn();
-            boardGraphicManager.ShowBornParticleAt(pos.x, pos.y);
-            boardGraphicManager.ChangeGraphicAll(board);
-        }
-
         private void InvokeBlockMoved(MoveDirection direction)
         {
             var clone = board.Clone() as BlockBoard;
@@ -202,8 +240,11 @@ namespace Com.Capra314Cabra.Project_2048Ex
             {
                 case GameState.GAME_NOW:
                     {
-                        var random_spawn_pos_zip = Random.Range(1, 4 + 1) * 16 + Random.Range(1, 4 + 1);
-                        gameSyncer.InvokeAction(ActionType.BLOCK_SPAWN, random_spawn_pos_zip);
+                        if (!gameSyncer.PlayerStatus.IsWatcher())
+                        {
+                            var random_spawn_pos_zip = Random.Range(1, 4 + 1) * 16 + Random.Range(1, 4 + 1);
+                            gameSyncer.InvokeAction(ActionType.BLOCK_SPAWN, random_spawn_pos_zip);
+                        }
                     }
                     break;
             }

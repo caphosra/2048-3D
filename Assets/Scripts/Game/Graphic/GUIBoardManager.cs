@@ -79,7 +79,10 @@ namespace Com.Capra314Cabra.Project_2048Ex
         protected const float BLOCK_SPACE = 4f;
         protected Vector3 CalcPosition(int x, int y)
         {
-            return new Vector3((x - 1) * BLOCK_SPACE - 6f, BLOCKS_Y, (y - 1) * BLOCK_SPACE - 6f);
+            float pos_x = transform.position.x + (x - 1) * BLOCK_SPACE - 6f;
+            float pos_y = BLOCKS_Y;
+            float pos_z = transform.position.z + (y - 1) * BLOCK_SPACE - 6f;
+            return new Vector3(pos_x, pos_y, pos_z);
         }
     }
 }
