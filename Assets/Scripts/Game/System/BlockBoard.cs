@@ -1,9 +1,11 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections.Generic;
+
+using UnityEngine;
 
 namespace Com.Capra314Cabra.Project_2048Ex
 {
-    public class BlockBoard
+    public class BlockBoard : ICloneable
     {
         private int[,] blockNumber = new int[4, 4];
         private int[] dx = new int[4] { 1, -1, 0, 0 };
@@ -240,14 +242,14 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         public (int x, int y) RandomSpawn()
         {
-            if (Full) throw new System.InvalidProgramException();
+            if (Full) throw new InvalidProgramException();
 
             // It's not effective.
             // I will change this part.
             while (true)
             {
-                var random_x = Random.Range(1, 4 + 1);
-                var random_y = Random.Range(1, 4 + 1);
+                var random_x = UnityEngine.Random.Range(1, 4 + 1);
+                var random_y = UnityEngine.Random.Range(1, 4 + 1);
                 if (this[random_x, random_y] == 0)
                 {
                     this[random_x, random_y] = 2;
@@ -269,6 +271,19 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 }
                 return true;
             }
+        }
+
+        public object Clone()
+        {
+            var board = new BlockBoard();
+            for(int x = 1; x <= 4; x++)
+            {
+                for(int y = 1; y <= 4; y++)
+                {
+                    board.SetValue(x, y, this.GetValue(x, y));
+                }
+            }
+            return board;
         }
     }
 

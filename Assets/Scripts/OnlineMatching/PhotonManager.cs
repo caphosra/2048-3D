@@ -11,47 +11,47 @@ using Photon.Realtime;
 
 namespace Com.Capra314Cabra.Project_2048Ex
 {
-    public class PhotonManager : MonoBehaviourPunCallbacks, IGameStateManager
+    public class PhotonManager : MonoBehaviourPunCallbacks, IGameSyncer
     {
-        #region GUI Objects
-
         [SerializeField]
-        private GameObject waitGUI;
-        [SerializeField]
-        private GameObject matchingGUI;
-
-        #endregion
-
-        #region GUI Items
-
-        [SerializeField]
-        InputField nicknameField;
-        [SerializeField]
-        InputField roomField;
-
-        #endregion
+        private MatchingGUIManager guiManager;
 
         public PlayerStatus PlayerStatus { get; set; } = PlayerStatus.OFFLINE;
 
-        public GameState GameState { get; set; } = GameState.AWAKE;
+        private GameState m_State = GameState.AWAKE;
+        public GameState State 
+        {
+            get => m_State;
+            set 
+            {
+                m_State = value;
+                OnGameStateChanged?.Invoke(m_State);
+            }
+        }
+        public event GameStateChangeHandler OnGameStateChanged;
 
         //
         // It's used only you are master.
         //
         private Player client;
 
+        // Game scene (Async Load)
         internal AsyncOperation gameSceneAsync;
 
         void Awake()
         {
+            GameStartArgment.OnlineGame = true;
             DontDestroyOnLoad(gameObject);
         }
 
         // Start is called before the first frame update
         void Start()
         {
+            // Initalize Photon
             var result = PhotonNetwork.ConnectUsingSettings();
+
             Debug.Log("Connect " + result);
+
             gameSceneAsync = GameSceneAsync();
         }
 
@@ -61,7 +61,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         }
 
-        #region Photon Callbacks
+        #region Before Game Start
 
         public override void OnJoinedRoom()
         {
@@ -74,9 +74,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
             else if(PhotonNetwork.IsMasterClient)
             {
                 PlayerStatus = PlayerStatus.ONLINE_SERVER;
-                matchingGUI.SetActive(false);
-                waitGUI.SetActive(true);
-                GameState = GameState.WAIT_CLIENT;
+                guiManager.MatchingGUI.SetActive(false);
+                guiManager.WaitGUI.SetActive(true);
+                State = GameState.WAIT_CLIENT;
             }
             else
             {
@@ -89,18 +89,27 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         public override void OnJoinRoomFailed(short returnCode, string message)
         {
-            Debug.LogError($"FAILED JOIN THE ROOM : {returnCode}");
+            Debug.LogError($"FAILED JOIN THE ROOM : {message}");
         }
+
+        private void OnMatchingSuccessful()
+        {
+            StartCoroutine(FinishAsyncLoad(gameSceneAsync));
+        }
+
+        #endregion
+
+        #region On Player Join or Left
 
         public override void OnPlayerEnteredRoom(Player newPlayer)
         {
-            if(PhotonNetwork.IsMasterClient)
+            if (PhotonNetwork.IsMasterClient)
             {
-                if(GetIsWatcher(newPlayer))
+                if (GetIsWatcher(newPlayer.NickName))
                 {
                     Debug.Log($"NEW WATCHER : {newPlayer.NickName}");
                 }
-                else if(client == null)
+                else if (client == null)
                 {
                     Debug.Log($"MATHCING SUCCESS ! : {newPlayer.NickName}");
                     client = newPlayer;
@@ -126,66 +135,96 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #endregion
 
-        #region GUI Events
+        #region Load Game Scene
 
-        public void OnCreateRoomButtonClicked()
-        {
-            var option = new RoomOptions();
-
-            PhotonNetwork.CreateRoom(roomField.text, option);
-            PhotonNetwork.NickName = nicknameField.text;
-            
-            GameStartArgment.OnlineGame = true;
-        }
-
-        public void OnJoinRoomButtonClicked()
-        {
-            var option = new RoomOptions();
-
-            PhotonNetwork.JoinRoom(roomField.text);
-            PhotonNetwork.NickName = nicknameField.text;
-            
-            GameStartArgment.OnlineGame = true;
-        }
-
-        public void OnRandomJoinRoomButtonClicked()
-        {
-            PhotonNetwork.JoinRandomRoom();
-            PhotonNetwork.NickName = nicknameField.text;
-            
-            GameStartArgment.OnlineGame = true;
-        }
-
-        #endregion
-
-        #region My Callbacks
-
-        public void OnMatchingSuccessful()
-        {
-            GameState = GameState.GAME_START;
-            StartCoroutine(FinishAsyncLoad(gameSceneAsync));
-        }
-
-        #endregion
-
-        public AsyncOperation GameSceneAsync()
+        private AsyncOperation GameSceneAsync()
         {
             var asyncOperation = SceneManager.LoadSceneAsync("Game", LoadSceneMode.Additive);
             asyncOperation.allowSceneActivation = false;
             return asyncOperation;
         }
 
-        public IEnumerator FinishAsyncLoad(AsyncOperation op)
+        private IEnumerator FinishAsyncLoad(AsyncOperation op)
         {
             op.allowSceneActivation = true;
             yield return op;
         }
 
-        private bool GetIsWatcher(string playerName)
+        #endregion
+    
+        #region On Ready
+
+        private ReadyStatus readyStatus = ReadyStatus.NONE;
+        public event GameSyncerHandler OnAllPlayerReady;
+
+        [PunRPC]
+        private void OnReceiveAllPlayerReady()
         {
-            return Regex.IsMatch(playerName, ".*WATCHER");
+            OnAllPlayerReady?.Invoke();
         }
 
-        private bool GetIsWatcher(Player player) => GetIsWatcher(player.NickName);
+        [PunRPC]
+        private void OnReceiveClientReady()
+        {
+            readyStatus |= ReadyStatus.CLIENT_READY;
+            Debug.Log("Client Ready");
+            CheckAllPlayerReady();
+        }
+
+        private void CheckAllPlayerReady()
+        {
+            if (readyStatus == (ReadyStatus.MASTER_READY | ReadyStatus.CLIENT_READY))
+            {
+                Debug.Log("Master & Client Ready !");
+                photonView.RPC("OnReceiveAllPlayerReady", RpcTarget.AllViaServer);
+            }
+        }
+
+        public void Ready()
+        {
+            if(PhotonNetwork.IsMasterClient)
+            {
+                readyStatus |= ReadyStatus.MASTER_READY;
+                Debug.Log("Master Ready");
+                CheckAllPlayerReady();
+            }
+            else
+            {
+                photonView.RPC("OnReceiveClientReady", RpcTarget.MasterClient);
+            }
+        }
+
+        [System.Flags]
+        private enum ReadyStatus
+        {
+            NONE = 0b00,
+            MASTER_READY = 0b01,
+            CLIENT_READY = 0b10
+        }
+
+        #endregion
+
+        #region Sync Blocks
+
+        public Queue<GameAction> DoneActions { get; set; } = new Queue<GameAction>();
+
+        [PunRPC]
+        private void OnReceivedDoneAction(bool isMaster, byte actionType, int param)
+        {
+            DoneActions.Enqueue(new GameAction(isMaster, (ActionType)actionType, param));
+        }
+
+        public void InvokeAction(ActionType actionType, int param)
+        {
+            bool isMaster = PlayerStatus == PlayerStatus.ONLINE_SERVER;
+            photonView.RPC("OnReceivedDoneAction", RpcTarget.AllBufferedViaServer, isMaster, (byte)actionType, param);
+        }
+
+        #endregion
+
+        public bool GetIsWatcher(string name)
+        {
+            return name.Contains("_");
+        }
     }
 }

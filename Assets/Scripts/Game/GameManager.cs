@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -10,69 +11,49 @@ using Photon.Realtime;
 
 namespace Com.Capra314Cabra.Project_2048Ex
 {
-    public class GameManager : MonoBehaviourPunCallbacks
+    public class GameManager : MonoBehaviour
     {
         #region MonoBehaviour Instance (Edit on Inspector)
 
         [SerializeField]
-        private ParticleSpawner bornParticleSpawner;
+        private Camera mainCamera;
+
         [SerializeField]
-        private ParticleSpawner readyParticleSpawner;
+        private GUIBoardManager masterBoardGraphicManager;
+        [SerializeField]
+        private GUIBoardManager clientBoardGraphicManager;
+
+        #region For Count Down
+
         [SerializeField]
         private GameObject countDownGUI;
         [SerializeField]
         private Text countDownText;
-        [SerializeField]
-        private PhotonView photonRPCSender;
 
         #endregion
-
-        #region MonoBehaviour Instance (Load by this code)
-
-        private Dictionary<(int x, int y), BlockManager> blockManagers;
 
         #endregion
 
         #region Game Logic Class Instance
 
-        private BlockBoard board = new BlockBoard();
+        private BlockBoard masterBoard = new BlockBoard();
+        private BlockBoard clientBoard = new BlockBoard();
 
         #endregion
-
-        #region Other Variables
 
         PhotonManager photonManager;
-        IGameStateManager stateManager;
-
-        #endregion
+        IGameSyncer gameSyncer;
 
         // Start is called before the first frame update
         void Start()
         {
-            blockManagers = new Dictionary<(int x, int y), BlockManager>();
-            for (int x = 1; x <= 4; x++)
-            {
-                for (int y = 1; y <= 4; y++)
-                {
-                    var blockManager = GameObject.Find($"Block{x}-{y}").GetComponent<BlockManager>();
-                    blockManagers.Add((x, y), blockManager);
-                }
-            }
-            board.RandomSpawn();
-            ChangeGraphicAll();
-
             if (GameStartArgment.OnlineGame)
             {
                 Debug.Log("Unload Matching Scene...");
                 StartCoroutine(UnloadMatchingScene());
 
                 photonManager = GameObject.Find("PhotonManager").GetComponent<PhotonManager>();
-                stateManager = photonManager;
-
-                if(stateManager.PlayerStatus == PlayerStatus.ONLINE_SERVER)
-                {
-                    photonRPCSender.RPC("CountDownStart", RpcTarget.AllViaServer);
-                }
+                gameSyncer = photonManager;
 
                 //
                 // Debug code
@@ -89,52 +70,88 @@ namespace Com.Capra314Cabra.Project_2048Ex
             }
             else
             {
-                stateManager = new GameStateManagerOffline();
-                stateManager.PlayerStatus = PlayerStatus.OFFLINE;
-                stateManager.GameState = GameState.GAME_START;
-
-                StartCoroutine(CountDown());
+                gameSyncer = new GameSyncerOffline();
             }
+
+            if(gameSyncer.PlayerStatus.IsClient())
+            {
+                var tmp = masterBoardGraphicManager;
+                masterBoardGraphicManager = clientBoardGraphicManager;
+                clientBoardGraphicManager = tmp;
+            }
+            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
+            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
+
+            gameSyncer.State = GameState.GAME_START;
+
+            gameSyncer.OnAllPlayerReady += () =>
+            {
+                StartCoroutine(CountDown());
+            };
+            gameSyncer.OnGameStateChanged += OnGameStateChangedCallback;
+
+            // The player is ready
+            gameSyncer.Ready();
         }
 
         // Update is called once per frame
         void Update()
         {
-            switch (stateManager.GameState)
+            switch (gameSyncer.State)
             {
                 case GameState.GAME_NOW:
                     {
-                        if (Input.GetKeyDown(KeyCode.W))
+                        if (!gameSyncer.PlayerStatus.IsWatcher())
                         {
-                            board.Move(MoveDirection.UP, out List<(int, int)> changed);
-                            if (changed.Count != 0 && !board.Full)
-                            {
-                                RandomSpawn();
-                            }
+                            if (Input.GetKeyDown(KeyCode.W)) InvokeBlockMoved(MoveDirection.UP);
+                            else if (Input.GetKeyDown(KeyCode.S)) InvokeBlockMoved(MoveDirection.DOWN);
+                            else if (Input.GetKeyDown(KeyCode.A)) InvokeBlockMoved(MoveDirection.LEFT);
+                            else if (Input.GetKeyDown(KeyCode.D)) InvokeBlockMoved(MoveDirection.RIGHT);
                         }
-                        else if (Input.GetKeyDown(KeyCode.S))
+                    }
+                    break;
+            }
+            while(gameSyncer.DoneActions.Any())
+            {
+                var action = gameSyncer.DoneActions.Dequeue();
+                DoAction(action);
+            }
+        }
+
+        void DoAction(GameAction action)
+        {
+            switch(action.ActionType)
+            {
+                case ActionType.BLOCK_MOVED:
+                    {
+                        if (action.IsMaster)
                         {
-                            board.Move(MoveDirection.DOWN, out List<(int, int)> changed);
-                            if (changed.Count != 0 && !board.Full)
-                            {
-                                RandomSpawn();
-                            }
+                            masterBoard.Move((MoveDirection)action.Parameter, out _);
+                            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
                         }
-                        else if (Input.GetKeyDown(KeyCode.A))
+                        else
                         {
-                            board.Move(MoveDirection.LEFT, out List<(int, int)> changed);
-                            if (changed.Count != 0 && !board.Full)
-                            {
-                                RandomSpawn();
-                            }
+                            clientBoard.Move((MoveDirection)action.Parameter, out _);
+                            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
                         }
-                        else if (Input.GetKeyDown(KeyCode.D))
+                    }
+                    break;
+                case ActionType.BLOCK_SPAWN:
+                    {
+                        int x = action.Parameter / 16;
+                        int y = action.Parameter % 16;
+
+                        if (action.IsMaster)
                         {
-                            board.Move(MoveDirection.RIGHT, out List<(int, int)> changed);
-                            if (changed.Count != 0 && !board.Full)
-                            {
-                                RandomSpawn();
-                            }
+                            masterBoard.SetValue(x, y, 2);
+                            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
+                            masterBoardGraphicManager.ShowBornParticleAt(x, y);
+                        }
+                        else
+                        {
+                            clientBoard.SetValue(x, y, 2);
+                            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
+                            clientBoardGraphicManager.ShowBornParticleAt(x, y);
                         }
                     }
                     break;
@@ -160,51 +177,46 @@ namespace Com.Capra314Cabra.Project_2048Ex
             }
 
             Destroy(countDownGUI);
-            stateManager.GameState = GameState.GAME_NOW;
+            gameSyncer.State = GameState.GAME_NOW;
         }
 
         #endregion
 
         #region Support Funcitons
 
-        void RandomSpawn()
+        private void InvokeBlockMoved(MoveDirection direction)
         {
-            var pos = board.RandomSpawn();
-            bornParticleSpawner.Spawn(CalcPosition(pos.x, pos.y) + new Vector3(0, 0.5f, 0));
-            ChangeGraphicAll();
-        }
-
-        void ChangeGraphicAll()
-        {
-            readyParticleSpawner.Free();
-            for (int x = 1; x <= 4; x++)
+            var board = gameSyncer.PlayerStatus.IsMaster() ? masterBoard : clientBoard; 
+            var clone = board.Clone() as BlockBoard;
+            clone.Move(direction, out List<(int, int)> changed);
+            if (changed.Count != 0 && !clone.Full)
             {
-                for (int y = 1; y <= 4; y++)
-                {
-                    blockManagers[(x, y)].ChangeMaterial(board[x, y]);
-                    if (board[x, y] >= 64)
-                    {
-                        readyParticleSpawner.Spawn(CalcPosition(x, y) + new Vector3(0, -0.1f, 0));
-                    }
-                }
-            }
-        }
+                gameSyncer.InvokeAction(ActionType.BLOCK_MOVED, (int)direction);
 
-        const float BLOCKS_Y = 0.75f;
-        const float BLOCK_SPACE = 4f;
-        Vector3 CalcPosition(int x, int y)
-        {
-            return new Vector3((x - 1) * BLOCK_SPACE - 6f, BLOCKS_Y, (y - 1) * BLOCK_SPACE - 6f);
+                var random_spawn_pos = clone.RandomSpawn();
+                var random_spawn_pos_zip = random_spawn_pos.x * 16 + random_spawn_pos.y;
+                gameSyncer.InvokeAction(ActionType.BLOCK_SPAWN, random_spawn_pos_zip);
+            }
         }
 
         #endregion
 
-        #region Photon RPC
+        #region EventCallbacks
 
-        [PunRPC]
-        private void CountDownStart(PhotonMessageInfo info)
+        private void OnGameStateChangedCallback(GameState state)
         {
-            StartCoroutine(CountDown());
+            switch(state)
+            {
+                case GameState.GAME_NOW:
+                    {
+                        if (!gameSyncer.PlayerStatus.IsWatcher())
+                        {
+                            var random_spawn_pos_zip = Random.Range(1, 4 + 1) * 16 + Random.Range(1, 4 + 1);
+                            gameSyncer.InvokeAction(ActionType.BLOCK_SPAWN, random_spawn_pos_zip);
+                        }
+                    }
+                    break;
+            }
         }
 
         #endregion
