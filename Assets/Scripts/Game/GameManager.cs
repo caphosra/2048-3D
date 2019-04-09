@@ -19,24 +19,16 @@ namespace Com.Capra314Cabra.Project_2048Ex
         private Camera mainCamera;
 
         [SerializeField]
-        private GUIBoardManager boardGraphicManager;
+        private GUIBoardManager masterBoardGraphicManager;
+        [SerializeField]
+        private GUIBoardManager clientBoardGraphicManager;
+
+        #region For Count Down
+
         [SerializeField]
         private GameObject countDownGUI;
         [SerializeField]
         private Text countDownText;
-        [SerializeField]
-        private PhotonView photonRPCSender;
-
-        #region Watcher Only
-
-        [SerializeField]
-        private GameObject subBoardObject;
-        [SerializeField]
-        private GUIBoardManager subBoardGraphicManager;
-        [SerializeField]
-        private Vector3 subCameraPosition;
-
-        private BlockBoard subBoard = new BlockBoard();
 
         #endregion
 
@@ -44,7 +36,8 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #region Game Logic Class Instance
 
-        private BlockBoard board = new BlockBoard();
+        private BlockBoard masterBoard = new BlockBoard();
+        private BlockBoard clientBoard = new BlockBoard();
 
         #endregion
 
@@ -54,8 +47,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
         // Start is called before the first frame update
         void Start()
         {
-            boardGraphicManager.ChangeGraphicAll(board);
-
             if (GameStartArgment.OnlineGame)
             {
                 Debug.Log("Unload Matching Scene...");
@@ -63,12 +54,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
                 photonManager = GameObject.Find("PhotonManager").GetComponent<PhotonManager>();
                 gameSyncer = photonManager;
-
-                if (gameSyncer.PlayerStatus.IsWatcher())
-                {
-                    subBoardObject.SetActive(true);
-                    mainCamera.transform.position = subCameraPosition;
-                }
 
                 //
                 // Debug code
@@ -87,6 +72,15 @@ namespace Com.Capra314Cabra.Project_2048Ex
             {
                 gameSyncer = new GameSyncerOffline();
             }
+
+            if(gameSyncer.PlayerStatus.IsClient())
+            {
+                var tmp = masterBoardGraphicManager;
+                masterBoardGraphicManager = clientBoardGraphicManager;
+                clientBoardGraphicManager = tmp;
+            }
+            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
+            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
 
             gameSyncer.State = GameState.GAME_START;
 
@@ -130,60 +124,34 @@ namespace Com.Capra314Cabra.Project_2048Ex
             {
                 case ActionType.BLOCK_MOVED:
                     {
-                        if(gameSyncer.PlayerStatus.IsWatcher())
+                        if (action.IsMaster)
                         {
-                            if(action.IsMaster)
-                            {
-                                board.Move((MoveDirection)action.Parameter, out _);
-                                boardGraphicManager.ChangeGraphicAll(board);
-                            }
-                            else
-                            {
-                                subBoard.Move((MoveDirection)action.Parameter, out _);
-                                subBoardGraphicManager.ChangeGraphicAll(subBoard);
-                            }
+                            masterBoard.Move((MoveDirection)action.Parameter, out _);
+                            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
                         }
                         else
                         {
-                            if(gameSyncer.PlayerStatus.IsMaster() == action.IsMaster)
-                            {
-                                board.Move((MoveDirection)action.Parameter, out _);
-                                boardGraphicManager.ChangeGraphicAll(board);
-                            }
+                            clientBoard.Move((MoveDirection)action.Parameter, out _);
+                            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
                         }
                     }
                     break;
                 case ActionType.BLOCK_SPAWN:
                     {
-                        if (gameSyncer.PlayerStatus.IsWatcher())
+                        int x = action.Parameter / 16;
+                        int y = action.Parameter % 16;
+
+                        if (action.IsMaster)
                         {
-                            if (action.IsMaster)
-                            {
-                                int x = action.Parameter / 16;
-                                int y = action.Parameter % 16;
-                                board.SetValue(x, y, 2);
-                                boardGraphicManager.ChangeGraphicAll(board);
-                                boardGraphicManager.ShowBornParticleAt(x, y);
-                            }
-                            else
-                            {
-                                int x = action.Parameter / 16;
-                                int y = action.Parameter % 16;
-                                subBoard.SetValue(x, y, 2);
-                                subBoardGraphicManager.ChangeGraphicAll(subBoard);
-                                subBoardGraphicManager.ShowBornParticleAt(x, y);
-                            }
+                            masterBoard.SetValue(x, y, 2);
+                            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
+                            masterBoardGraphicManager.ShowBornParticleAt(x, y);
                         }
                         else
                         {
-                            if (gameSyncer.PlayerStatus.IsMaster() == action.IsMaster)
-                            {
-                                int x = action.Parameter / 16;
-                                int y = action.Parameter % 16;
-                                board.SetValue(x, y, 2);
-                                boardGraphicManager.ChangeGraphicAll(board);
-                                boardGraphicManager.ShowBornParticleAt(x, y);
-                            }
+                            clientBoard.SetValue(x, y, 2);
+                            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
+                            clientBoardGraphicManager.ShowBornParticleAt(x, y);
                         }
                     }
                     break;
@@ -218,9 +186,10 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         private void InvokeBlockMoved(MoveDirection direction)
         {
+            var board = gameSyncer.PlayerStatus.IsMaster() ? masterBoard : clientBoard; 
             var clone = board.Clone() as BlockBoard;
             clone.Move(direction, out List<(int, int)> changed);
-            if (changed.Count != 0 && !board.Full)
+            if (changed.Count != 0 && !clone.Full)
             {
                 gameSyncer.InvokeAction(ActionType.BLOCK_MOVED, (int)direction);
 

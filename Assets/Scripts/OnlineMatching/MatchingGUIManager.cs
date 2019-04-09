@@ -34,7 +34,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
         
         const byte ROOM_MAX_PLAYER = 5;
 
-        private void OnJoinRoomAsWatcherClicked()
+        public void OnJoinRoomAsWatcherClicked()
         {
             var nickName = nicknameField.text;
 
@@ -55,7 +55,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
             PhotonNetwork.JoinRoom(roomName);
         }
 
-        private void OnJoinRoomAsPlayerClicked()
+        public void OnJoinRoomAsPlayerClicked()
         {
             var nickName = nicknameField.text;
 
@@ -71,7 +71,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
             var roomName = roomField.text;
 
-            PhotonNetwork.JoinRoom(roomName);
+            PhotonNetwork.JoinOrCreateRoom(roomName, null, null);
         }
     }
 }

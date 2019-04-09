@@ -217,7 +217,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
         public void InvokeAction(ActionType actionType, int param)
         {
             bool isMaster = PlayerStatus == PlayerStatus.ONLINE_SERVER;
-            photonView.RPC("OnReceivedDoneAction", RpcTarget.AllBufferedViaServer, isMaster, actionType, param);
+            photonView.RPC("OnReceivedDoneAction", RpcTarget.AllBufferedViaServer, isMaster, (byte)actionType, param);
         }
 
         #endregion
