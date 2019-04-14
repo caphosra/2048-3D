@@ -23,6 +23,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
         [SerializeField]
         private GUIBoardManager clientBoardGraphicManager;
 
+        [SerializeField]
+        private GameGUIManager gameGUIManager;
+
         #region For Count Down
 
         [SerializeField]
@@ -47,6 +50,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
         // Start is called before the first frame update
         void Start()
         {
+            gameGUIManager.PlayerAmount = 0;
+            gameGUIManager.EnemyAmount = 0;
+
             if (GameStartArgment.OnlineGame)
             {
                 Debug.Log("Unload Matching Scene...");
@@ -78,6 +84,8 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 var tmp = masterBoardGraphicManager;
                 masterBoardGraphicManager = clientBoardGraphicManager;
                 clientBoardGraphicManager = tmp;
+
+                gameGUIManager.Swap();
             }
             masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
             clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
