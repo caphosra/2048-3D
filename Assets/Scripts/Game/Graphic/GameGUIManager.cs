@@ -3,49 +3,35 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class GameGUIManager : MonoBehaviour
+namespace Com.Capra314Cabra.Project_2048Ex
 {
-    [SerializeField]
-    private Image playerProgressBar;
-    [SerializeField]
-    private Image enemyProgressBar;
-
-    private float m_PlayerAmount = 0f;
-    public float PlayerAmount
+    public class GameGUIManager : MonoBehaviour
     {
-        get => m_PlayerAmount;
-        set
+        [SerializeField]
+        private Image playerProgressBar;
+
+        [SerializeField]
+        private Text playerScoreText;
+        [SerializeField]
+        private Text enemyScoreText;
+
+        /// <summary>
+        /// If the player is the client, you should make this value "true".
+        /// </summary>
+        public bool IsSwaped { get; set; } = false;
+
+        public void Init()
         {
-            m_PlayerAmount = value;
-            OnPlayerAmountChanged();
+            playerProgressBar.fillAmount = 0.5f;
+            playerScoreText.text = "10";
+            enemyScoreText.text = "10";
         }
-    }
 
-    private float m_EnemyAmount = 0f;
-    public float EnemyAmount
-    {
-        get => m_EnemyAmount;
-        set
+        public void Show(int playerScore, int enemyScore)
         {
-            m_EnemyAmount = value;
-            OnEnemyAmountChanged();
+            playerProgressBar.fillAmount = ((IsSwaped ? enemyScore : playerScore) / (playerScore + enemyScore));
+            playerScoreText.text = (IsSwaped ? enemyScore : playerScore).ToString();
+            enemyScoreText.text = (IsSwaped ? playerScore : enemyScore).ToString();
         }
-    }
-
-    public void Swap()
-    {
-        var tmp = playerProgressBar;
-        playerProgressBar = enemyProgressBar;
-        enemyProgressBar = tmp;
-    }
-
-    private void OnPlayerAmountChanged()
-    {
-        playerProgressBar.fillAmount = m_PlayerAmount;
-    }
-
-    private void OnEnemyAmountChanged()
-    {
-        enemyProgressBar.fillAmount = m_EnemyAmount;
     }
 }

@@ -35,6 +35,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
     {
         BLOCK_MOVED,
         BLOCK_SPAWN,
+        BLOCK_DELETE,
+
+        ADD_SCORE,
     }
 
     public delegate void GameSyncerHandler(); 
