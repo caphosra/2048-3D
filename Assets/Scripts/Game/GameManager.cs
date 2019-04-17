@@ -50,8 +50,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
         // Start is called before the first frame update
         void Start()
         {
-            gameGUIManager.PlayerAmount = 0;
-            gameGUIManager.EnemyAmount = 0;
+            gameGUIManager.Init();
 
             if (GameStartArgment.OnlineGame)
             {
@@ -85,7 +84,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 masterBoardGraphicManager = clientBoardGraphicManager;
                 clientBoardGraphicManager = tmp;
 
-                gameGUIManager.Swap();
+                gameGUIManager.IsSwaped = true;
             }
             masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
             clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
