@@ -1,13 +1,12 @@
 ﻿using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 using Photon.Pun;
-using Photon.Realtime;
 
 namespace Com.Capra314Cabra.Project_2048Ex
 {
@@ -39,7 +38,12 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #region Game Logic Class Instance
 
+        const int DEFAULT_SCORE = 10;
+
+        private int masterScore = DEFAULT_SCORE;
         private BlockBoard masterBoard = new BlockBoard();
+
+        private int clientScore = DEFAULT_SCORE;
         private BlockBoard clientBoard = new BlockBoard();
 
         #endregion
@@ -47,10 +51,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
         PhotonManager photonManager;
         IGameSyncer gameSyncer;
 
-        // Start is called before the first frame update
         void Start()
         {
-            gameGUIManager.Init();
+            gameGUIManager.Init(masterScore, clientScore);
 
             if (GameStartArgment.OnlineGame)
             {
@@ -86,6 +89,19 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
                 gameGUIManager.IsSwaped = true;
             }
+
+            //
+            // If the player is not a watcher, the blocks make themselves clickable.
+            //
+            if(!gameSyncer.PlayerStatus.IsWatcher())
+            {
+                masterBoardGraphicManager.Clickable = true;
+                masterBoardGraphicManager.OnBlockClicked += OnBlockClickedCallback;
+            }
+
+            //
+            // Reload the graphics of the blocks.
+            //
             masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
             clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
 
@@ -97,11 +113,12 @@ namespace Com.Capra314Cabra.Project_2048Ex
             };
             gameSyncer.OnGameStateChanged += OnGameStateChangedCallback;
 
-            // The player is ready
+            //
+            // The player is, now, ready.
+            //
             gameSyncer.Ready();
         }
 
-        // Update is called once per frame
         void Update()
         {
             switch (gameSyncer.State)
@@ -160,6 +177,36 @@ namespace Com.Capra314Cabra.Project_2048Ex
                             clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
                             clientBoardGraphicManager.ShowBornParticleAt(x, y);
                         }
+                    }
+                    break;
+                case ActionType.BLOCK_DELETE:
+                    {
+                        int x = action.Parameter / 16;
+                        int y = action.Parameter % 16;
+
+                        if (action.IsMaster)
+                        {
+                            masterBoard.SetValue(x, y, 0);
+                            masterBoardGraphicManager.ChangeGraphicAll(masterBoard);
+                        }
+                        else
+                        {
+                            clientBoard.SetValue(x, y, 0);
+                            clientBoardGraphicManager.ChangeGraphicAll(clientBoard);
+                        }
+                    }
+                    break;
+                case ActionType.ADD_SCORE:
+                    {
+                        if (action.IsMaster)
+                        {
+                            masterScore += action.Parameter;
+                        }
+                        else
+                        {
+                            clientScore += action.Parameter;
+                        }
+                        gameGUIManager.Show(masterScore, clientScore);
                     }
                     break;
             }
@@ -224,6 +271,40 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     }
                     break;
             }
+        }
+
+        private int SCORE_64 = 5;
+        private int SCORE_128 = 11;
+        private int SCORE_256 = 23;
+        private int SCORE_512 = 47;
+        private void OnBlockClickedCallback(byte x, byte y)
+        {
+            var board = gameSyncer.PlayerStatus.IsMaster() ? masterBoard : clientBoard;
+
+            var val = board.GetValue(x, y);
+            if(val < 64)
+            {
+                return;
+            }
+            gameSyncer.InvokeAction(ActionType.BLOCK_DELETE, x * 16 + y);
+
+            var score = 0;
+            switch(val)
+            {
+                case 64:
+                    score = SCORE_64;
+                    break;
+                case 128:
+                    score = SCORE_128;
+                    break;
+                case 256:
+                    score = SCORE_256;
+                    break;
+                case int n when n > 512:
+                    score = SCORE_512;
+                    break;
+            }
+            gameSyncer.InvokeAction(ActionType.ADD_SCORE, score);
         }
 
         #endregion

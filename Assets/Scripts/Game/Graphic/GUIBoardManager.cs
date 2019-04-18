@@ -57,6 +57,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
             readyParticleSpawner.Spawn(CalcPosition(x, y) + new Vector3(0, -0.1f, 0));
         }
 
+        protected int SHOW_READY_PARTICLE_AMOUNT = 64;
         public void ChangeGraphicAll(BlockBoard board)
         {
             readyParticleSpawner.Free();
@@ -65,7 +66,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 for (int y = 1; y <= 4; y++)
                 {
                     blockManagers[(x, y)].ChangeMaterial(board[x, y]);
-                    if (board[x, y] >= 64)
+                    if (board[x, y] >= SHOW_READY_PARTICLE_AMOUNT)
                     {
                         ShowReadyParticleAt(x, y);
                     }
@@ -83,6 +84,11 @@ namespace Com.Capra314Cabra.Project_2048Ex
             return new Vector3(pos_x, pos_y, pos_z);
         }
 
+        public delegate void OnBlockClickedHandler(byte x, byte y);
+        public event OnBlockClickedHandler OnBlockClicked;
+
+        public bool Clickable { get; set; }
+
         /// <summary>
         /// Callback from the block objects
         /// </summary>
@@ -91,6 +97,12 @@ namespace Com.Capra314Cabra.Project_2048Ex
         {
             var x = byte.Parse(arg[0].ToString());
             var y = byte.Parse(arg[2].ToString());
+
+            if (Clickable)
+            {
+                Debug.Log($"[Block Clicked] Block{x}-{y}");
+                OnBlockClicked?.Invoke(x, y);
+            }
         }
     }
 }

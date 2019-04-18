@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,18 +21,20 @@ namespace Com.Capra314Cabra.Project_2048Ex
         /// </summary>
         public bool IsSwaped { get; set; } = false;
 
-        public void Init()
+        public void Init(int masterScore, int clientScore)
         {
-            playerProgressBar.fillAmount = 0.5f;
-            playerScoreText.text = "10";
-            enemyScoreText.text = "10";
+            if(masterScore != clientScore)
+            {
+                throw new System.ArgumentException("The value of MasterScore is different from ClientScore");
+            }
+            Show(masterScore, clientScore);
         }
 
-        public void Show(int playerScore, int enemyScore)
+        public void Show(int masterScore, int clientScore)
         {
-            playerProgressBar.fillAmount = ((IsSwaped ? enemyScore : playerScore) / (playerScore + enemyScore));
-            playerScoreText.text = (IsSwaped ? enemyScore : playerScore).ToString();
-            enemyScoreText.text = (IsSwaped ? playerScore : enemyScore).ToString();
+            playerProgressBar.fillAmount = ((float)(IsSwaped ? clientScore : masterScore) / (masterScore + clientScore));
+            playerScoreText.text = (IsSwaped ? clientScore : masterScore).ToString();
+            enemyScoreText.text = (IsSwaped ? masterScore : clientScore).ToString();
         }
     }
 }
