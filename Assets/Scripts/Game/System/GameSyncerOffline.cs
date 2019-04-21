@@ -8,6 +8,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
     {
         public event GameSyncerHandler OnAllPlayerReady;
         public event GameStateChangeHandler OnGameStateChanged;
+        public event GameSyncerHandler OnNameChanged;
         public event GameFinishHandler OnGameFinished;
 
         public PlayerStatus PlayerStatus { get; set; } = PlayerStatus.OFFLINE;
@@ -22,7 +23,10 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 OnGameStateChanged?.Invoke(m_State);
             }
         }
-        
+
+        public string MasterName { get; set; } = "unknown";
+        public string ClientName { get; set; } = "unknown";
+
 
         public Queue<GameAction> DoneActions { get; set; } = new Queue<GameAction>();
 
@@ -34,6 +38,11 @@ namespace Com.Capra314Cabra.Project_2048Ex
         public void Ready()
         {
             OnAllPlayerReady?.Invoke();
+        }
+
+        public void ChangeName(string name)
+        {
+            MasterName = name;
         }
 
         public void InvokeAction(ActionType actionType, int param)

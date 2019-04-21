@@ -28,6 +28,10 @@ namespace Com.Capra314Cabra.Project_2048Ex
         }
         public event GameStateChangeHandler OnGameStateChanged;
 
+        public event GameSyncerHandler OnNameChanged;
+        public string MasterName { get; set; } = "unknown";
+        public string ClientName { get; set; } = "unknown";
+
         //
         // It's used only you are master.
         //
@@ -198,6 +202,33 @@ namespace Com.Capra314Cabra.Project_2048Ex
             NONE = 0b00,
             MASTER_READY = 0b01,
             CLIENT_READY = 0b10
+        }
+
+        #endregion
+
+        #region Change Name
+
+        [PunRPC]
+        private void OnReceivedChangeName(bool isMaster, string name)
+        {
+            if(isMaster)
+            {
+                MasterName = name;
+            }
+            else
+            {
+                ClientName = name;
+            }
+
+            OnNameChanged?.Invoke();
+        }
+
+        public void ChangeName(string name)
+        {
+            if (!PlayerStatus.IsWatcher())
+            {
+                photonView.RPC("OnReceivedChangeName", RpcTarget.AllBufferedViaServer, PlayerStatus.IsMaster(), name);
+            }
         }
 
         #endregion

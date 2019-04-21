@@ -105,6 +105,8 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     clientBoardGraphicManager.Clickable = true;
                     clientBoardGraphicManager.OnBlockClicked += OnBlockClickedCallback;
                 }
+
+                gameSyncer.ChangeName(GameStartArgment.OnlineGame ? PhotonNetwork.NickName : "You");
             }
 
             //
@@ -117,9 +119,11 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
             gameSyncer.OnAllPlayerReady += () =>
             {
+                OnChangeNameCallback();
                 StartCoroutine(CountDown());
             };
             gameSyncer.OnGameStateChanged += OnGameStateChangedCallback;
+            gameSyncer.OnNameChanged += OnChangeNameCallback;
             gameSyncer.OnGameFinished += OnGameFinished;
 
             //
@@ -310,6 +314,11 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     }
                     break;
             }
+        }
+
+        private void OnChangeNameCallback()
+        {
+            gameGUIManager.SetPlayersName(gameSyncer.MasterName, gameSyncer.ClientName);
         }
 
         private int SCORE_64 = 5;

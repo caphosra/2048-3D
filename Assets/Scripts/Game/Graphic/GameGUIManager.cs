@@ -82,10 +82,10 @@ namespace Com.Capra314Cabra.Project_2048Ex
             }
         }
 
-        public void SetPlayersName(string playerName, string enemyName)
+        public void SetPlayersName(string masterName, string clientName)
         {
-            playerNameText.text = playerName;
-            enemyNameText.text = enemyName;
+            playerNameText.text = IsSwaped ? clientName : masterName;
+            enemyNameText.text = IsSwaped ? masterName : clientName;
         }
 
         public void BackToLobby()
