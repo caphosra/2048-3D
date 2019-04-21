@@ -1,9 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 using Photon.Pun;
@@ -29,6 +27,10 @@ namespace Com.Capra314Cabra.Project_2048Ex
             }
         }
         public event GameStateChangeHandler OnGameStateChanged;
+
+        public event GameSyncerHandler OnNameChanged;
+        public string MasterName { get; set; } = "unknown";
+        public string ClientName { get; set; } = "unknown";
 
         //
         // It's used only you are master.
@@ -204,6 +206,33 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #endregion
 
+        #region Change Name
+
+        [PunRPC]
+        private void OnReceivedChangeName(bool isMaster, string name)
+        {
+            if(isMaster)
+            {
+                MasterName = name;
+            }
+            else
+            {
+                ClientName = name;
+            }
+
+            OnNameChanged?.Invoke();
+        }
+
+        public void ChangeName(string name)
+        {
+            if (!PlayerStatus.IsWatcher())
+            {
+                photonView.RPC("OnReceivedChangeName", RpcTarget.AllBufferedViaServer, PlayerStatus.IsMaster(), name);
+            }
+        }
+
+        #endregion
+
         #region Sync Blocks
 
         public Queue<GameAction> DoneActions { get; set; } = new Queue<GameAction>();
@@ -216,8 +245,28 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         public void InvokeAction(ActionType actionType, int param)
         {
-            bool isMaster = PlayerStatus == PlayerStatus.ONLINE_SERVER;
+            bool isMaster = PlayerStatus.IsMaster();
             photonView.RPC("OnReceivedDoneAction", RpcTarget.AllBufferedViaServer, isMaster, (byte)actionType, param);
+        }
+
+        #endregion
+
+        #region Game Finished
+
+        public event GameFinishHandler OnGameFinished;
+
+        [PunRPC]
+        private void OnReceivedGameFinished(int winner)
+        {
+            OnGameFinished?.Invoke((Winner)winner);
+        }
+
+        public void EndGame(Winner winner)
+        {
+            if(PlayerStatus.IsMaster())
+            {
+                photonView.RPC("OnReceivedGameFinished", RpcTarget.AllBufferedViaServer, (int)winner);
+            }
         }
 
         #endregion

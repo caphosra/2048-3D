@@ -14,9 +14,8 @@ namespace Com.Capra314Cabra.Project_2048Ex
         WAIT_CLIENT,
         GAME_START,
         GAME_NOW,
-        GAME_FINISHED,
-        GAME_SERVER_WIN,
-        GAME_SERVER_LOSE
+        GAME_FINISHING,
+        GAME_FINISHED
     }
 
     public enum PlayerStatus

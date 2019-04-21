@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 using UnityEngine;
 
@@ -30,20 +29,19 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         }
 
+        /// <summary>
+        /// [WARNINGS] This function depends on the BLOCK NAME (formated as "Block(x)-(y)")
+        /// </summary>
         protected void InitalizeBlockManagers()
         {
             blockManagers = new Dictionary<(int x, int y), BlockManager>();
-
-            var regex = new Regex("[1-5]");
 
             foreach(var block in blocks)
             {
                 var blockManager = block.GetComponent<BlockManager>();
 
-                var matches = regex.Matches(block.name);
-
-                var x = int.Parse(matches[0].Groups[0].Value);
-                var y = int.Parse(matches[1].Groups[0].Value);
+                var x = int.Parse(block.name[5].ToString());
+                var y = int.Parse(block.name[7].ToString());
 
                 blockManagers.Add((x, y), blockManager);
             }
@@ -59,6 +57,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
             readyParticleSpawner.Spawn(CalcPosition(x, y) + new Vector3(0, -0.1f, 0));
         }
 
+        protected int SHOW_READY_PARTICLE_AMOUNT = 64;
         public void ChangeGraphicAll(BlockBoard board)
         {
             readyParticleSpawner.Free();
@@ -67,7 +66,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 for (int y = 1; y <= 4; y++)
                 {
                     blockManagers[(x, y)].ChangeMaterial(board[x, y]);
-                    if (board[x, y] >= 64)
+                    if (board[x, y] >= SHOW_READY_PARTICLE_AMOUNT)
                     {
                         ShowReadyParticleAt(x, y);
                     }
@@ -83,6 +82,27 @@ namespace Com.Capra314Cabra.Project_2048Ex
             float pos_y = BLOCKS_Y;
             float pos_z = transform.position.z + (y - 1) * BLOCK_SPACE - 6f;
             return new Vector3(pos_x, pos_y, pos_z);
+        }
+
+        public delegate void OnBlockClickedHandler(byte x, byte y);
+        public event OnBlockClickedHandler OnBlockClicked;
+
+        public bool Clickable { get; set; }
+
+        /// <summary>
+        /// Callback from the block objects
+        /// </summary>
+        /// <param name="arg">A text which formated as "(x)-(y)"</param>
+        public void BlockClickedCallback(string arg)
+        {
+            var x = byte.Parse(arg[0].ToString());
+            var y = byte.Parse(arg[2].ToString());
+
+            if (Clickable)
+            {
+                Debug.Log($"[Block Clicked] Block{x}-{y}");
+                OnBlockClicked?.Invoke(x, y);
+            }
         }
     }
 }
