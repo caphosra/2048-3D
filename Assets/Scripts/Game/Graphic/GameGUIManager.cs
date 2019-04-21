@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace Com.Capra314Cabra.Project_2048Ex
 {
@@ -15,6 +16,17 @@ namespace Com.Capra314Cabra.Project_2048Ex
         private Text playerScoreText;
         [SerializeField]
         private Text enemyScoreText;
+        [SerializeField]
+        private Text remainingTimeText;
+
+        [SerializeField]
+        GameObject resultGUI;
+        [SerializeField]
+        private Transform WinText;
+        [SerializeField]
+        private Transform LoseText;
+        [SerializeField]
+        private Transform DrawText;
 
         /// <summary>
         /// If the player is the client, you should make this value "true".
@@ -27,14 +39,47 @@ namespace Com.Capra314Cabra.Project_2048Ex
             {
                 throw new System.ArgumentException("The value of MasterScore is different from ClientScore");
             }
-            Show(masterScore, clientScore);
+            UpdateScoreText(masterScore, clientScore);
         }
 
-        public void Show(int masterScore, int clientScore)
+        public void UpdateScoreText(int masterScore, int clientScore)
         {
             playerProgressBar.fillAmount = ((float)(IsSwaped ? clientScore : masterScore) / (masterScore + clientScore));
             playerScoreText.text = (IsSwaped ? clientScore : masterScore).ToString();
             enemyScoreText.text = (IsSwaped ? masterScore : clientScore).ToString();
+        }
+
+        public void UpdateRemainingTimeText(int remainingTime)
+        {
+            remainingTimeText.text = remainingTime.ToString();
+        }
+
+        public void ShowResult(Winner winner)
+        {
+            resultGUI.SetActive(true);
+
+            if (winner == Winner.DRAW)
+            {
+                WinText.gameObject.SetActive(false);
+                LoseText.gameObject.SetActive(false);
+            }
+            else
+            {
+                DrawText.gameObject.SetActive(false);
+
+                var swap = IsSwaped ^ (winner == Winner.CLIENT_WIN);
+                if (swap)
+                {
+                    var tmp = WinText.transform.position;
+                    WinText.transform.position = LoseText.transform.position;
+                    LoseText.transform.position = tmp;
+                }
+            }
+        }
+
+        public void BackToLobby()
+        {
+            SceneManager.LoadScene("Lobby");
         }
     }
 }

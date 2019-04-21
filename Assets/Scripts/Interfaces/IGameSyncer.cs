@@ -9,11 +9,14 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         event GameStateChangeHandler OnGameStateChanged;
         event GameSyncerHandler OnAllPlayerReady;
+
+        event GameFinishHandler OnGameFinished;
         
         Queue<GameAction> DoneActions { get; set; }
 
         void Ready();
         void InvokeAction(ActionType actionType, int param);
+        void EndGame(Winner winner);
     }
 
     public struct GameAction
@@ -40,8 +43,17 @@ namespace Com.Capra314Cabra.Project_2048Ex
         ADD_SCORE,
     }
 
+    public enum Winner
+    {
+        DRAW,
+
+        MASTER_WIN,
+        CLIENT_WIN
+    }
+
     public delegate void GameSyncerHandler(); 
     public delegate void GameStateChangeHandler(GameState state);
     public delegate void GameBlockMoveHandler(bool isMaster, MoveDirection direction);
     public delegate void GameSpawnBlockHandler(bool isMaster, byte x, byte y);
+    public delegate void GameFinishHandler(Winner winner);
 }

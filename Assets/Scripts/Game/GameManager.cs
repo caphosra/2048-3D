@@ -95,8 +95,16 @@ namespace Com.Capra314Cabra.Project_2048Ex
             //
             if(!gameSyncer.PlayerStatus.IsWatcher())
             {
-                masterBoardGraphicManager.Clickable = true;
-                masterBoardGraphicManager.OnBlockClicked += OnBlockClickedCallback;
+                if (gameSyncer.PlayerStatus.IsMaster())
+                {
+                    masterBoardGraphicManager.Clickable = true;
+                    masterBoardGraphicManager.OnBlockClicked += OnBlockClickedCallback;
+                }
+                else
+                {
+                    clientBoardGraphicManager.Clickable = true;
+                    clientBoardGraphicManager.OnBlockClicked += OnBlockClickedCallback;
+                }
             }
 
             //
@@ -112,6 +120,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 StartCoroutine(CountDown());
             };
             gameSyncer.OnGameStateChanged += OnGameStateChangedCallback;
+            gameSyncer.OnGameFinished += OnGameFinished;
 
             //
             // The player is, now, ready.
@@ -206,7 +215,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
                         {
                             clientScore += action.Parameter;
                         }
-                        gameGUIManager.Show(masterScore, clientScore);
+                        gameGUIManager.UpdateScoreText(masterScore, clientScore);
                     }
                     break;
             }
@@ -231,6 +240,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
             }
 
             Destroy(countDownGUI);
+            StartCoroutine(ReserveGameFinishEvent());
             gameSyncer.State = GameState.GAME_NOW;
         }
 
@@ -250,6 +260,35 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 var random_spawn_pos = clone.RandomSpawn();
                 var random_spawn_pos_zip = random_spawn_pos.x * 16 + random_spawn_pos.y;
                 gameSyncer.InvokeAction(ActionType.BLOCK_SPAWN, random_spawn_pos_zip);
+            }
+        }
+
+        private IEnumerator ReserveGameFinishEvent()
+        {
+            for(int counter = 120; counter >= 1; counter--)
+            {
+                gameGUIManager.UpdateRemainingTimeText(counter);
+                yield return new WaitForSeconds(1f);
+            }
+
+            gameGUIManager.UpdateRemainingTimeText(0);
+
+            gameSyncer.State = GameState.GAME_FINISHING;
+
+            if (gameSyncer.PlayerStatus.IsMaster())
+            {
+                if (masterScore > clientScore)
+                {
+                    gameSyncer.EndGame(Winner.MASTER_WIN);
+                }
+                else if (masterScore < clientScore)
+                {
+                    gameSyncer.EndGame(Winner.CLIENT_WIN);
+                }
+                else
+                {
+                    gameSyncer.EndGame(Winner.DRAW);
+                }
             }
         }
 
@@ -305,6 +344,12 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     break;
             }
             gameSyncer.InvokeAction(ActionType.ADD_SCORE, score);
+        }
+
+        private void OnGameFinished(Winner winner)
+        {
+            gameSyncer.State = GameState.GAME_FINISHED;
+            gameGUIManager.ShowResult(winner);
         }
 
         #endregion

@@ -220,6 +220,26 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #endregion
 
+        #region Game Finished
+
+        public event GameFinishHandler OnGameFinished;
+
+        [PunRPC]
+        private void OnReceivedGameFinished(int winner)
+        {
+            OnGameFinished?.Invoke((Winner)winner);
+        }
+
+        public void EndGame(Winner winner)
+        {
+            if(PlayerStatus.IsMaster())
+            {
+                photonView.RPC("OnReceivedGameFinished", RpcTarget.AllBufferedViaServer, (int)winner);
+            }
+        }
+
+        #endregion
+
         public bool GetIsWatcher(string name)
         {
             return name.Contains("_");
