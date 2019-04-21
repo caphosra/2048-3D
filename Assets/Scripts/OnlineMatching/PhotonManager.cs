@@ -72,6 +72,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
             if(GetIsWatcher(PhotonNetwork.NickName))
             {
                 PlayerStatus = PlayerStatus.ONLINE_WATCHER;
+                OnMatchingSuccessful();
             }
             else if(PhotonNetwork.IsMasterClient)
             {
