@@ -28,6 +28,11 @@ namespace Com.Capra314Cabra.Project_2048Ex
         [SerializeField]
         private Transform DrawText;
 
+        [SerializeField]
+        private Text playerNameText;
+        [SerializeField]
+        private Text enemyNameText;
+
         /// <summary>
         /// If the player is the client, you should make this value "true".
         /// </summary>
@@ -75,6 +80,12 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     LoseText.transform.position = tmp;
                 }
             }
+        }
+
+        public void SetPlayersName(string playerName, string enemyName)
+        {
+            playerNameText.text = playerName;
+            enemyNameText.text = enemyName;
         }
 
         public void BackToLobby()
