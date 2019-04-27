@@ -11,12 +11,18 @@ namespace Com.Capra314Cabra.Project_2048Ex
 {
     public class PhotonManager : MonoBehaviourPunCallbacks, IGameSyncer
     {
+        /// <summary>
+        /// 
+        /// The component of the GUI which is shown when the player is on matching. [SerializeField]
+        /// 
+        /// </summary>
         [SerializeField]
         private MatchingGUIManager guiManager;
 
+        #region Implementation of "IGameSyncer"
+
         public PlayerStatus PlayerStatus { get; set; } = PlayerStatus.OFFLINE;
 
-        private GameState m_State = GameState.AWAKE;
         public GameState State 
         {
             get => m_State;
@@ -26,18 +32,30 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 OnGameStateChanged?.Invoke(m_State);
             }
         }
-        public event GameStateChangeHandler OnGameStateChanged;
+        private GameState m_State = GameState.AWAKE;
 
-        public event GameSyncerHandler OnNameChanged;
         public string MasterName { get; set; } = "unknown";
         public string ClientName { get; set; } = "unknown";
 
-        //
-        // It's used only you are master.
-        //
+        public event GameStateChangeHandler OnGameStateChanged;
+        public event GameSyncerHandler OnAllPlayerReady;
+        public event GameSyncerHandler OnNameChanged;
+        public event GameFinishHandler OnGameFinished;
+
+        public Queue<GameAction> DoneActions { get; set; } = new Queue<GameAction>();
+
+        #endregion
+
+        /// <summary>
+        /// 
+        /// It's used only you are master.
+        /// 
+        /// </summary>
         private Player client;
 
-        // Game scene (Async Load)
+        /// <summary>
+        /// Game scene (Async Load)
+        /// </summary>
         internal AsyncOperation gameSceneAsync;
 
         void Awake()
@@ -46,7 +64,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
             DontDestroyOnLoad(gameObject);
         }
 
-        // Start is called before the first frame update
         void Start()
         {
             // Initalize Photon
@@ -57,7 +74,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
             gameSceneAsync = GameSceneAsync();
         }
 
-        // Update is called once per frame
         void Update()
         {
 
@@ -158,7 +174,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
         #region On Ready
 
         private ReadyStatus readyStatus = ReadyStatus.NONE;
-        public event GameSyncerHandler OnAllPlayerReady;
+        
 
         [PunRPC]
         private void OnReceiveAllPlayerReady()
@@ -236,8 +252,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         #region Sync Blocks
 
-        public Queue<GameAction> DoneActions { get; set; } = new Queue<GameAction>();
-
         [PunRPC]
         private void OnReceivedDoneAction(bool isMaster, byte actionType, int param)
         {
@@ -253,8 +267,6 @@ namespace Com.Capra314Cabra.Project_2048Ex
         #endregion
 
         #region Game Finished
-
-        public event GameFinishHandler OnGameFinished;
 
         [PunRPC]
         private void OnReceivedGameFinished(int winner)

@@ -155,6 +155,9 @@ namespace Com.Capra314Cabra.Project_2048Ex
             }
         }
 
+        //
+        // Execute the instance of the GameAction
+        //
         void DoAction(GameAction action)
         {
             switch(action.ActionType)
