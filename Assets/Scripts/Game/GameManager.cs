@@ -24,6 +24,8 @@ namespace Com.Capra314Cabra.Project_2048Ex
 
         [SerializeField]
         private GameGUIManager gameGUIManager;
+        [SerializeField]
+        private SpecialCardManager specialCardManager;
 
         #region For Count Down
 
@@ -107,6 +109,8 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 }
 
                 gameSyncer.ChangeName(GameStartArgment.OnlineGame ? PhotonNetwork.NickName : "You");
+
+                specialCardManager.GameSyncer = gameSyncer;
             }
 
             //
@@ -140,10 +144,23 @@ namespace Com.Capra314Cabra.Project_2048Ex
                     {
                         if (!gameSyncer.PlayerStatus.IsWatcher())
                         {
-                            if (Input.GetKeyDown(KeyCode.W)) InvokeBlockMoved(MoveDirection.UP);
-                            else if (Input.GetKeyDown(KeyCode.S)) InvokeBlockMoved(MoveDirection.DOWN);
-                            else if (Input.GetKeyDown(KeyCode.A)) InvokeBlockMoved(MoveDirection.LEFT);
-                            else if (Input.GetKeyDown(KeyCode.D)) InvokeBlockMoved(MoveDirection.RIGHT);
+                            if (specialCardManager.CurrentStatus != SpecialStatusType.WRONG_MOVE)
+                            {
+                                if (Input.GetKeyDown(KeyCode.W)) InvokeBlockMoved(MoveDirection.UP);
+                                else if (Input.GetKeyDown(KeyCode.S)) InvokeBlockMoved(MoveDirection.DOWN);
+                                else if (Input.GetKeyDown(KeyCode.A)) InvokeBlockMoved(MoveDirection.LEFT);
+                                else if (Input.GetKeyDown(KeyCode.D)) InvokeBlockMoved(MoveDirection.RIGHT);
+                            }
+                            else
+                            {
+                                //
+                                // A WorngMove Card is used.
+                                //
+                                if (Input.GetKeyDown(KeyCode.S)) InvokeBlockMoved(MoveDirection.UP);
+                                else if (Input.GetKeyDown(KeyCode.W)) InvokeBlockMoved(MoveDirection.DOWN);
+                                else if (Input.GetKeyDown(KeyCode.D)) InvokeBlockMoved(MoveDirection.LEFT);
+                                else if (Input.GetKeyDown(KeyCode.A)) InvokeBlockMoved(MoveDirection.RIGHT);
+                            }
                         }
                     }
                     break;
@@ -223,6 +240,42 @@ namespace Com.Capra314Cabra.Project_2048Ex
                             clientScore += action.Parameter;
                         }
                         gameGUIManager.UpdateScoreText(masterScore, clientScore);
+                    }
+                    break;
+                case ActionType.SPECIAL_CARD:
+                    {
+                        var specialStatusType = (SpecialStatusType)action.Parameter;
+                        var runner = action.IsMaster;
+                        var attackeeIsMaster = specialStatusType.IsAttack() ? !runner : runner;
+
+                        if(attackeeIsMaster == true)
+                        {
+                            // TODO
+                        }
+                        else
+                        {
+                            // TODO   
+                        }
+
+                        if(!gameSyncer.PlayerStatus.IsWatcher())
+                        {
+                            if(gameSyncer.PlayerStatus.IsMaster() == attackeeIsMaster)
+                            {
+                                specialCardManager.OnAddSpecialStatus(specialStatusType);
+                            }
+                        }
+                    }
+                    break;
+                case ActionType.CLEAR_SPECIAL:
+                    {
+                        //
+                        // If you are master, your status will be changed by only client.
+                        // And its opposite is also true.
+                        //
+                        if (action.IsMaster != gameSyncer.PlayerStatus.IsMaster())
+                        {
+                            specialCardManager.OnClearSpecialStatus();
+                        }
                     }
                     break;
             }
@@ -340,22 +393,28 @@ namespace Com.Capra314Cabra.Project_2048Ex
             gameSyncer.InvokeAction(ActionType.BLOCK_DELETE, x * 16 + y);
 
             var score = 0;
+            ISpecialCard card = null;
             switch(val)
             {
                 case 64:
                     score = SCORE_64;
+                    card = DataBase.UserDatabase.PlayersSpecialCards[64];
                     break;
                 case 128:
                     score = SCORE_128;
+                    card = DataBase.UserDatabase.PlayersSpecialCards[128];
                     break;
                 case 256:
                     score = SCORE_256;
+                    card = DataBase.UserDatabase.PlayersSpecialCards[256];
                     break;
                 case int n when n > 512:
                     score = SCORE_512;
+                    card = DataBase.UserDatabase.PlayersSpecialCards[512];
                     break;
             }
             gameSyncer.InvokeAction(ActionType.ADD_SCORE, score);
+            specialCardManager.Run(card);
         }
 
         private void OnGameFinished(Winner winner)
