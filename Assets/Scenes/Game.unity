@@ -1093,6 +1093,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1457500752}
   - component: {fileID: 1457500753}
+  - component: {fileID: 1457500754}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1130,8 +1131,21 @@ MonoBehaviour:
   masterBoardGraphicManager: {fileID: 428964432}
   clientBoardGraphicManager: {fileID: 1871264162}
   gameGUIManager: {fileID: 1740102246}
+  specialCardManager: {fileID: 1457500754}
   countDownGUI: {fileID: 76984503}
   countDownText: {fileID: 1413374304}
+--- !u!114 &1457500754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1457500751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2691ec2c799d6ce409f39d2c888335d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1458901295
 GameObject:
   m_ObjectHideFlags: 0
