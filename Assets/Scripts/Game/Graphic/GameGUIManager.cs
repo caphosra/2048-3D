@@ -33,11 +33,19 @@ namespace Com.Capra314Cabra.Project_2048Ex
         [SerializeField]
         private Text enemyNameText;
 
+        [SerializeField]
+        private Text playerStatusText;
+        [SerializeField]
+        private Text enemyStatusText;
+
         /// <summary>
         /// If the player is the client, you should make this value "true".
         /// </summary>
         public bool IsSwaped { get; set; } = false;
 
+        /// <summary>
+        /// Initalize the score
+        /// </summary>
         public void Init(int masterScore, int clientScore)
         {
             if(masterScore != clientScore)
@@ -45,7 +53,13 @@ namespace Com.Capra314Cabra.Project_2048Ex
                 throw new System.ArgumentException("The value of MasterScore is different from ClientScore");
             }
             UpdateScoreText(masterScore, clientScore);
+
+            UpdateStatusText(true, SpecialStatusType.NONE);
         }
+
+        //
+        // [Update Method]
+        //
 
         public void UpdateScoreText(int masterScore, int clientScore)
         {
@@ -58,6 +72,27 @@ namespace Com.Capra314Cabra.Project_2048Ex
         {
             remainingTimeText.text = remainingTime.ToString();
         }
+
+        SpecialStatusType masterStatusType = SpecialStatusType.NONE;
+        SpecialStatusType clientStatusType = SpecialStatusType.NONE;
+        public void UpdateStatusText(bool isMaster, SpecialStatusType newType)
+        {
+            string ConvertToString(SpecialStatusType type)
+            {
+                if (type == SpecialStatusType.NONE) return "";
+                return System.Enum.GetName(typeof(SpecialStatusType), type);
+            }
+
+            if (isMaster) masterStatusType = newType;
+            else clientStatusType = newType;
+
+            playerStatusText.text = IsSwaped ? ConvertToString(clientStatusType) : ConvertToString(masterStatusType);
+            enemyStatusText.text = IsSwaped ? ConvertToString(masterStatusType) : ConvertToString(clientStatusType);
+        }
+
+        //
+        // ----------
+        //
 
         public void ShowResult(Winner winner)
         {

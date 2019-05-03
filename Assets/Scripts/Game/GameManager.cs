@@ -248,14 +248,7 @@ namespace Com.Capra314Cabra.Project_2048Ex
                         var runner = action.IsMaster;
                         var attackeeIsMaster = specialStatusType.IsAttack() ? !runner : runner;
 
-                        if(attackeeIsMaster == true)
-                        {
-                            // TODO
-                        }
-                        else
-                        {
-                            // TODO   
-                        }
+                        gameGUIManager.UpdateStatusText(attackeeIsMaster, specialStatusType);
 
                         if(!gameSyncer.PlayerStatus.IsWatcher())
                         {
@@ -272,10 +265,16 @@ namespace Com.Capra314Cabra.Project_2048Ex
                         // If you are master, your status will be changed by only client.
                         // And its opposite is also true.
                         //
-                        if (action.IsMaster != gameSyncer.PlayerStatus.IsMaster())
+                        if (!gameSyncer.PlayerStatus.IsWatcher())
                         {
-                            specialCardManager.OnClearSpecialStatus();
+                            if (action.IsMaster != gameSyncer.PlayerStatus.IsMaster())
+                            {
+                                specialCardManager.OnClearSpecialStatus();
+                            }
                         }
+
+                        var attackeeIsMaster = !action.IsMaster;
+                        gameGUIManager.UpdateStatusText(attackeeIsMaster, SpecialStatusType.NONE);
                     }
                     break;
             }
